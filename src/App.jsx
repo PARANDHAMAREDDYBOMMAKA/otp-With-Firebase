@@ -37,12 +37,12 @@ const App = () => {
           toast.success("OTP sent successfully!");
         })
         .catch((error) => {
-          console.error("Error sending OTP:", error);
+          // console.error("Error sending OTP:", error);
           setLoading(false);
           toast.error("Failed to send OTP. Please try again.");
         });
     } catch (error) {
-      console.error("Error initializing reCAPTCHA:", error);
+      // console.error("Error initializing reCAPTCHA:", error);
       setLoading(false);
       toast.error("Failed to initialize reCAPTCHA. Please try again.");
     }
@@ -54,18 +54,18 @@ const App = () => {
       window.confirmationResult
         .confirm(otp)
         .then(async (res) => {
-          console.log(res);
+          // console.log(res);
           setUser(res.user);
           setLoading(false);
           toast.success("Login successful!");
         })
         .catch((err) => {
-          console.error("Invalid OTP:", err);
+          // console.error("Invalid OTP:", err);
           setLoading(false);
           toast.error("Invalid OTP. Please try again.");
         });
     } else {
-      console.error("Confirmation result is undefined");
+      // console.error("Confirmation result is undefined");
       setLoading(false);
       toast.error("An error occurred. Please try again.");
     }
