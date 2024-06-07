@@ -1,11 +1,12 @@
+/* eslint-disable no-unused-vars */
 import { BsFillShieldLockFill, BsTelephoneFill } from "react-icons/bs";
 import { CgSpinner } from "react-icons/cg";
 import OtpInput from "otp-input-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import { auth } from "./firebase.config"; // Import firebase config
-import { signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
+import { auth } from "./firebase.config";
+import { signInWithPhoneNumber, RecaptchaVerifier, createUserWithEmailAndPassword, sendEmailVerification, applyActionCode } from "firebase/auth";
 import { toast, Toaster } from "react-hot-toast";
 
 const App = () => {
@@ -14,6 +15,8 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
   const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
 
   function onSignup() {
     setLoading(true);
@@ -37,12 +40,10 @@ const App = () => {
           toast.success("OTP sent successfully!");
         })
         .catch((error) => {
-          // console.error("Error sending OTP:", error);
           setLoading(false);
           toast.error("Failed to send OTP. Please try again.");
         });
     } catch (error) {
-      // console.error("Error initializing reCAPTCHA:", error);
       setLoading(false);
       toast.error("Failed to initialize reCAPTCHA. Please try again.");
     }
@@ -54,32 +55,60 @@ const App = () => {
       window.confirmationResult
         .confirm(otp)
         .then(async (res) => {
-          // console.log(res);
           setUser(res.user);
           setLoading(false);
           toast.success("Login successful!");
         })
         .catch((err) => {
-          // console.error("Invalid OTP:", err);
           setLoading(false);
           toast.error("Invalid OTP. Please try again.");
         });
     } else {
-      // console.error("Confirmation result is undefined");
       setLoading(false);
       toast.error("An error occurred. Please try again.");
     }
   }
 
+  const handleEmailSignup = async () => {
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, 'defaultPassword');
+      await sendEmailVerification(userCredential.user);
+      setLoading(false);
+      toast.success('Verification email sent!');
+    } catch (error) {
+      setLoading(false);
+      toast.error(error.message);
+    }
+  };
+
+  useEffect(() => {
+    const handleEmailVerification = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const mode = urlParams.get('mode');
+      const oobCode = urlParams.get('oobCode');
+
+      if (mode === 'verifyEmail' && oobCode) {
+        try {
+          await applyActionCode(auth, oobCode);
+          setEmailVerified(true);
+          toast.success('Email verified successfully!');
+        } catch (error) {
+          toast.error(error.message);
+        }
+      }
+    };
+
+    handleEmailVerification();
+  }, []);
+
   return (
-    <section >
+    <section>
       <div>
         <Toaster toastOptions={{ duration: 4000 }} />
         <div id="recaptcha-container"></div>
-        {user ? (
-          <h2>
-            👍 Login Success
-          </h2>
+        {user || emailVerified ? (
+          <h2>👍 Login Success</h2>
         ) : (
           <div>
             {showOTP ? (
@@ -113,6 +142,19 @@ const App = () => {
                   {loading && <CgSpinner size={20} />}
                   <span>Send code via SMS</span>
                 </button>
+                <div>
+                  <label htmlFor="email">Or sign up with email:</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                  />
+                  <button onClick={handleEmailSignup}>
+                    {loading && <CgSpinner size={20} />}
+                    <span>Sign up with Email</span>
+                  </button>
+                </div>
               </>
             )}
           </div>
